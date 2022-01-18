@@ -1,0 +1,2 @@
+sudo docker run -d --name=postgres-bleenco -p 5432:5432 -v postgres-volume:/var/lib/postgresql/data -e POSTGRES_PASSWORD=bunica postgres
+sudo docker exec -it postgres-bleenco psql -d bleenco -U postgres
