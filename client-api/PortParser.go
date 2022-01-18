@@ -1,37 +1,20 @@
-package utils
+package main
 
 import (
-	"Bleenco/errors"
+	"Bleenco/common"
+	"Bleenco/common/errors"
 	"encoding/json"
 	"fmt"
 	"os"
 )
 
-type Port struct {
-	Name        string    `json:"name"`
-	City        string    `json:"city"`
-	Country     string    `json:"country"`
-	Alias       []string  `json:"alias"`
-	Regions     []string  `json:"regions"`
-	Coordinates []float32 `json:"coordinates"`
-	Province    string    `json:"province"`
-	Timezone    string    `json:"timezone"`
-	Unlocs      []string  `json:"unlocs"`
-	Code        string    `json:"code"`
-}
-
-type Entry struct {
-	PortName string
-	Port     Port
-}
-
-func GetPorts() (entriesChannel chan Entry, errorChannel chan error) {
-	entriesChannel = make(chan Entry, ChannelSize)
-	errorChannel = make(chan error, ChannelSize)
+func GetPorts() (entriesChannel chan common.Entry, errorChannel chan error) {
+	entriesChannel = make(chan common.Entry, common.ChannelSize)
+	errorChannel = make(chan error, common.ChannelSize)
 	go func() {
 		defer close(entriesChannel)
 		defer close(errorChannel)
-		file, err := os.Open(PortsJsonFilename)
+		file, err := os.Open(common.PortsJsonFilename)
 		if err != nil {
 			errorChannel <- &errors.PortError{Text: "Unable to open ports.json"}
 			return
@@ -54,7 +37,7 @@ func GetPorts() (entriesChannel chan Entry, errorChannel chan error) {
 				errorChannel <- &errors.PortError{Text: "Unable to read port name"}
 				return
 			}
-			entry := Entry{}
+			entry := common.Entry{}
 			switch token.(type) {
 			case string:
 				entry.PortName = token.(string)

@@ -1,11 +1,12 @@
 package main
 
 import (
-	"Bleenco/utils"
+	"Bleenco/common"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -13,23 +14,23 @@ import (
 
 func GetEntries(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	entriesChannel, errorChannel := utils.GetPorts()
+	entriesChannel, errorChannel := GetPorts()
 	entriesOpen := true
 	errorOpen := true
 	running := true
-	var entry utils.Entry
+	var entry common.Entry
 	var err error
 	for running {
 		select {
 		case entry, entriesOpen = <-entriesChannel:
 			if entriesOpen {
 				post, posterr := json.Marshal(entry.Port)
-				utils.CheckError(posterr)
+				common.CheckError(posterr)
 
 				resp, httperr := http.Post("http://localhost:8080/upsert", "application/json", bytes.NewBuffer(post))
-				utils.CheckError(httperr)
+				common.CheckError(httperr)
 				err := resp.Body.Close()
-				utils.CheckError(err)
+				common.CheckError(err)
 			} else {
 				entriesChannel = nil
 			}
@@ -46,16 +47,33 @@ func GetEntries(w http.ResponseWriter, _ *http.Request) {
 		}
 	}
 
-	var response = utils.JsonStatusResponse{Status: "success"}
+	var response = common.JsonStatusResponse{Status: "success"}
 
 	err = json.NewEncoder(w).Encode(response)
-	utils.CheckError(err)
+	common.CheckError(err)
+}
+
+func handleSelect(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	page := mux.Vars(r)["page"]
+	resp, err := http.Get(fmt.Sprintf("http://localhost:8080/select/%s", page))
+	common.CheckError(err)
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		common.CheckError(err)
+	}(resp.Body)
+	var ports interface{}
+	err = json.NewDecoder(resp.Body).Decode(&ports)
+	common.CheckError(err)
+	err = json.NewEncoder(w).Encode(common.JsonPortsResponseNoTypeCast{Status: "success", Ports: ports})
+	common.CheckError(err)
 }
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/entries", GetEntries).Methods("GET")
+	router.HandleFunc("/parse", GetEntries).Methods("GET")
+	router.HandleFunc("/select/{page}", handleSelect).Methods("GET")
 
 	fmt.Println("Server at 8081")
 	log.Fatal(http.ListenAndServe(":8081", router))
