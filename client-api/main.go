@@ -2,14 +2,24 @@ package main
 
 import (
 	"Bleenco/common"
-	"bytes"
+	pb "Bleenco/rpc"
+	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+)
+
+var (
+	addr = flag.String("addr", "localhost:50051", "the address to connect to")
+	c    pb.CommunicatorClient
 )
 
 func handleParser(w http.ResponseWriter, _ *http.Request) {
@@ -19,18 +29,14 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 	errorOpen := true
 	running := true
 	var entry common.Entry
-	var err error
+	stream, err := c.Upsert(context.Background())
 	for running {
 		select {
 		case entry, entriesOpen = <-entriesChannel:
 			if entriesOpen {
-				post, posterr := json.Marshal(entry.Port)
-				common.CheckError(posterr)
-
-				resp, httperr := http.Post("http://localhost:8080/upsert", "application/json", bytes.NewBuffer(post))
-				common.CheckError(httperr)
-				err := resp.Body.Close()
-				common.CheckError(err)
+				if err := stream.Send(common.JsonPortToRpcPort(entry.Port)); err != nil {
+					common.CheckError(err)
+				}
 			} else {
 				entriesChannel = nil
 			}
@@ -47,6 +53,11 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 		}
 	}
 
+	_, err = stream.CloseAndRecv()
+	if err != nil {
+		common.CheckError(err)
+	}
+
 	var response = common.JsonStatusResponse{Status: "success"}
 
 	err = json.NewEncoder(w).Encode(response)
@@ -56,25 +67,40 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 func handleSelect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	page := mux.Vars(r)["page"]
-	resp, err := http.Get(fmt.Sprintf("http://localhost:8080/select/%s", page))
+	intPage, err := strconv.Atoi(page)
 	common.CheckError(err)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
+	stream, err := c.Select(context.Background(), &pb.RpcPage{Page: int32(intPage)})
+	var ports = make([]common.Port, 0)
+	for {
+		port, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
 		common.CheckError(err)
-	}(resp.Body)
-	var ports interface{}
-	err = json.NewDecoder(resp.Body).Decode(&ports)
-	common.CheckError(err)
+		ports = append(ports, common.RpcPortToJsonPort(port))
+	}
+
 	err = json.NewEncoder(w).Encode(common.JsonPortsResponseNoTypeCast{Status: "success", Ports: ports})
 	common.CheckError(err)
 }
 
 func main() {
+	flag.Parse()
+	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		common.CheckError(err)
+	}(conn)
+	c = pb.NewCommunicatorClient(conn)
+
 	router := mux.NewRouter().StrictSlash(true)
 
 	router.HandleFunc("/parse", handleParser).Methods("GET")
 	router.HandleFunc("/select/{page}", handleSelect).Methods("GET")
 
-	fmt.Println("Server at 8081")
-	log.Fatal(http.ListenAndServe(":8081", router))
+	fmt.Println("Server at 8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
 }

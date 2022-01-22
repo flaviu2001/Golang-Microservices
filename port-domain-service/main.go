@@ -2,14 +2,20 @@ package main
 
 import (
 	"Bleenco/common"
+	pb "Bleenco/rpc"
 	"database/sql"
-	"encoding/json"
+	"flag"
 	"fmt"
-	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"io"
 	"log"
-	"net/http"
-	"strconv"
+	"net"
+)
+
+var (
+	grpcPort = flag.Int("port", 50051, "The server port")
 )
 
 const (
@@ -42,6 +48,7 @@ const (
 	removeAliases       = "DELETE FROM aliases WHERE unlocs = $1"
 	removeRegions       = "DELETE FROM regions WHERE unlocs = $1"
 	selectHighestId     = "SELECT GREATEST(0, max(id)) from (select id from ports order by id desc limit 1) t"
+	selectPortId        = "SELECT id FROM ports WHERE unlocs = $1"
 	upsertPortStatement = "INSERT INTO ports " +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) " +
 		"ON CONFLICT (unlocs) DO UPDATE " +
@@ -52,6 +59,33 @@ const (
 	selectAliases       = "SELECT alias FROM aliases WHERE unlocs = $1"
 	selectRegions       = "SELECT region FROM regions WHERE unlocs = $1"
 )
+
+type server struct {
+	pb.UnimplementedCommunicatorServer
+}
+
+func (s *server) Upsert(stream pb.Communicator_UpsertServer) error {
+	for {
+		rpcPort, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&emptypb.Empty{})
+		}
+		if err != nil {
+			return err
+		}
+		upsertPort(common.RpcPortToJsonPort(rpcPort))
+	}
+}
+
+func (s *server) Select(rpcPage *pb.RpcPage, stream pb.Communicator_SelectServer) error {
+	ports := getPorts(int(rpcPage.Page))
+	for _, port := range ports {
+		if err := stream.Send(common.JsonPortToRpcPort(port)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func getConnection() *sql.DB {
 	dbinfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
@@ -98,18 +132,26 @@ func upsertPort(port common.Port) {
 	}
 	rows, err := conn.Query(selectHighestId)
 	common.CheckError(err)
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		common.CheckError(err)
-	}(rows)
 	var portId int64
 	for rows.Next() {
 		err = rows.Scan(&portId)
 		common.CheckError(err)
 	}
+	err = rows.Close()
+	common.CheckError(err)
 	portId += 1
 	_, err = conn.Exec(upsertPortStatement, portId, unlocs, port.Name, port.City, port.Country, coord1, coord2, port.Province, port.Timezone, port.Code)
 	common.CheckError(err)
+	rows, err = conn.Query(selectPortId, unlocs)
+	common.CheckError(err)
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		common.CheckError(err)
+	}(rows)
+	for rows.Next() {
+		err = rows.Scan(&portId)
+		common.CheckError(err)
+	}
 	for _, alias := range port.Alias {
 		_, err = conn.Exec(insertAlias, portId, unlocs, alias)
 		common.CheckError(err)
@@ -119,15 +161,6 @@ func upsertPort(port common.Port) {
 		common.CheckError(err)
 	}
 
-}
-
-func handleUpsert(w http.ResponseWriter, r *http.Request) {
-	var port common.Port
-	_ = json.NewDecoder(r.Body).Decode(&port)
-	upsertPort(port)
-	var response = common.JsonStatusResponse{Status: "success"}
-	err := json.NewEncoder(w).Encode(response)
-	common.CheckError(err)
 }
 
 func getAliases(conn *sql.DB, unlocs string) []string {
@@ -207,22 +240,17 @@ func getPorts(page int) []common.Port {
 	return ports
 }
 
-func handleSelect(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	page, err := strconv.Atoi(mux.Vars(r)["page"])
-	common.CheckError(err)
-	ports := getPorts(page)
-	err = json.NewEncoder(w).Encode(common.JsonPortsResponse{Status: "success", Ports: ports})
-	common.CheckError(err)
-}
-
 func main() {
 	initDatabase()
-	router := mux.NewRouter().StrictSlash(true)
-
-	router.HandleFunc("/upsert", handleUpsert).Methods("POST")
-	router.HandleFunc("/select/{page}", handleSelect).Methods("GET")
-
-	fmt.Println("Server at 8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	flag.Parse()
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *grpcPort))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	pb.RegisterCommunicatorServer(s, &server{})
+	log.Printf("server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
