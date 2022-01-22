@@ -165,8 +165,8 @@ func getPorts(page int) []common.Port {
 	lowerBound := page * common.PageSize
 	upperBound := (page+1)*common.PageSize - 1
 	rows, err := conn.Query(paginatedSelectPort, lowerBound, upperBound)
-	ports := make([]common.Port, 0)
 	common.CheckError(err)
+	ports := make([]common.Port, 0)
 	for rows.Next() {
 		var id int64
 		var unlocs string

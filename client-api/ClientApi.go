@@ -12,7 +12,7 @@ import (
 	"os"
 )
 
-func GetEntries(w http.ResponseWriter, _ *http.Request) {
+func handleParser(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	entriesChannel, errorChannel := GetPorts()
 	entriesOpen := true
@@ -72,7 +72,7 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/parse", GetEntries).Methods("GET")
+	router.HandleFunc("/parse", handleParser).Methods("GET")
 	router.HandleFunc("/select/{page}", handleSelect).Methods("GET")
 
 	fmt.Println("Server at 8081")
