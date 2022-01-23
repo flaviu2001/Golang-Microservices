@@ -4,7 +4,6 @@ import (
 	"Bleenco/common"
 	pb "Bleenco/rpc"
 	"database/sql"
-	"flag"
 	"fmt"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
@@ -12,10 +11,7 @@ import (
 	"io"
 	"log"
 	"net"
-)
-
-var (
-	grpcPort = flag.Int("port", 50051, "The server port")
+	"os"
 )
 
 const (
@@ -242,8 +238,11 @@ func getPorts(page int) []common.Port {
 
 func main() {
 	initDatabase()
-	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *grpcPort))
+	var port string
+	if port = os.Getenv(common.GrpcServerPort); port == "" {
+		port = common.DefaultPort
+	}
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

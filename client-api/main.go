@@ -5,7 +5,6 @@ import (
 	pb "Bleenco/rpc"
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
 	"google.golang.org/grpc"
@@ -17,10 +16,7 @@ import (
 	"strconv"
 )
 
-var (
-	addr = flag.String("addr", "localhost:50051", "the address to connect to")
-	c    pb.CommunicatorClient
-)
+var c pb.CommunicatorClient
 
 func handleParser(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -85,8 +81,16 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	flag.Parse()
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	var addr string
+	var port string
+	if addr = os.Getenv(common.GrpcServerAddr); addr == "" {
+		addr = common.DefaultAddress
+	}
+	if port = os.Getenv(common.GrpcServerPort); port == "" {
+		port = common.DefaultPort
+	}
+	addr = fmt.Sprintf("%s:%s", addr, port)
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
