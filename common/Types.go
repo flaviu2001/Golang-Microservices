@@ -9,11 +9,6 @@ type JsonPortsResponse struct {
 	Ports  []Port `json:"ports"`
 }
 
-type JsonPortsResponseNoTypeCast struct {
-	Status string      `json:"status"`
-	Ports  interface{} `json:"ports"`
-}
-
 type Port struct {
 	Name        string    `json:"name"`
 	City        string    `json:"city"`

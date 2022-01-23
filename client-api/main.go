@@ -20,43 +20,42 @@ var c pb.CommunicatorClient
 
 func handleParser(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	entriesChannel, errorChannel := GetPorts()
-	entriesOpen := true
-	errorOpen := true
-	running := true
-	var entry common.Entry
-	stream, err := c.Upsert(context.Background())
-	for running {
-		select {
-		case entry, entriesOpen = <-entriesChannel:
-			if entriesOpen {
-				if err := stream.Send(common.JsonPortToRpcPort(entry.Port)); err != nil {
-					common.CheckError(err)
+	go func() {
+		entriesChannel, errorChannel := GetPorts()
+		entriesOpen := true
+		errorOpen := true
+		running := true
+		var entry common.Entry
+		stream, err := c.Upsert(context.Background())
+		for running {
+			select {
+			case entry, entriesOpen = <-entriesChannel:
+				if entriesOpen {
+					if err := stream.Send(common.JsonPortToRpcPort(entry.Port)); err != nil {
+						common.CheckError(err)
+					}
+				} else {
+					entriesChannel = nil
 				}
-			} else {
-				entriesChannel = nil
-			}
-		case err, errorOpen = <-errorChannel:
-			if errorOpen {
-				_, _ = fmt.Fprintf(os.Stderr, "%s", err.Error())
-			} else {
-				errorChannel = nil
-			}
-		default:
-			if entriesChannel == nil && errorChannel == nil {
-				running = false
+			case err, errorOpen = <-errorChannel:
+				if errorOpen {
+					_, _ = fmt.Fprintf(os.Stderr, "%s", err.Error())
+				} else {
+					errorChannel = nil
+				}
+			default:
+				if entriesChannel == nil && errorChannel == nil {
+					running = false
+				}
 			}
 		}
-	}
-
-	_, err = stream.CloseAndRecv()
-	if err != nil {
-		common.CheckError(err)
-	}
-
-	var response = common.JsonStatusResponse{Status: "success"}
-
-	err = json.NewEncoder(w).Encode(response)
+		_, err = stream.CloseAndRecv()
+		if err != nil {
+			common.CheckError(err)
+		}
+	}()
+	var response = common.JsonStatusResponse{Status: "started"}
+	err := json.NewEncoder(w).Encode(response)
 	common.CheckError(err)
 }
 
@@ -76,7 +75,7 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 		ports = append(ports, common.RpcPortToJsonPort(port))
 	}
 
-	err = json.NewEncoder(w).Encode(common.JsonPortsResponseNoTypeCast{Status: "success", Ports: ports})
+	err = json.NewEncoder(w).Encode(common.JsonPortsResponse{Status: "success", Ports: ports})
 	common.CheckError(err)
 }
 
