@@ -1,0 +1,24 @@
+services:
+  client:
+    build:
+      context: "."
+      dockerfile: "client-api/Dockerfile"
+    ports:
+      - "8080:8080"
+    links:
+      - server
+    environment:
+      GRPC_SERVER_ADDR: "server"
+  server:
+    build:
+      context: "."
+      dockerfile: "port-domain-service/Dockerfile"
+    links:
+      - database
+    environment:
+      DBHOST: "database"
+  database:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: bunica
+      POSTGRES_DB: "bleenco"

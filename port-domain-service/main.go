@@ -50,6 +50,8 @@ const (
 	selectRegions       = "SELECT region FROM regions WHERE unlocs = $1"
 )
 
+var databaseInitialized = false
+
 type server struct {
 	pb.UnimplementedCommunicatorServer
 }
@@ -77,7 +79,7 @@ func (s *server) Select(rpcPage *pb.RpcPage, stream pb.Communicator_SelectServer
 	return nil
 }
 
-func getConnection() *sql.DB {
+func getConnection() (*sql.DB, error) {
 	host := common.FromEnvVar(common.EnvDbHost, common.DbHost)
 	port := common.FromEnvVar(common.EnvDbPort, common.DbPort)
 	user := common.FromEnvVar(common.EnvDbUser, common.DbUser)
@@ -86,33 +88,45 @@ func getConnection() *sql.DB {
 	dbinfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 	db, err := sql.Open("postgres", dbinfo)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return db
+	return db, nil
 }
 
 func initDatabase() {
-	conn := getConnection()
+	if databaseInitialized {
+		return
+	}
+	conn, err := getConnection()
+	if err != nil {
+		return
+	}
 	defer func(conn *sql.DB) {
 		err := conn.Close()
 		common.CheckError(err)
 	}(conn)
-	_, err := conn.Exec(createPortTable)
+	_, err = conn.Exec(createPortTable)
 	common.CheckError(err)
 	_, err = conn.Exec(createAliasTable)
 	common.CheckError(err)
 	_, err = conn.Exec(createRegionTable)
 	common.CheckError(err)
+	databaseInitialized = true
 }
 
 func upsertPort(port common.Port) {
-	conn := getConnection()
+	initDatabase()
+	conn, err := getConnection()
+	if err != nil {
+		log.Printf("Port %s could not be upserted\n", port.Unlocs[0])
+		return
+	}
 	defer func(conn *sql.DB) {
 		err := conn.Close()
 		common.CheckError(err)
 	}(conn)
 	unlocs := port.Unlocs[0]
-	_, err := conn.Exec(removeAliases, unlocs)
+	_, err = conn.Exec(removeAliases, unlocs)
 	common.CheckError(err)
 	_, err = conn.Exec(removeRegions, unlocs)
 	common.CheckError(err)
@@ -185,7 +199,11 @@ func getRegions(conn *sql.DB, unlocs string) []string {
 }
 
 func getPorts(page int) []common.Port {
-	conn := getConnection()
+	initDatabase()
+	conn, err := getConnection()
+	if err != nil {
+		return []common.Port{}
+	}
 	defer func(conn *sql.DB) {
 		err := conn.Close()
 		common.CheckError(err)
@@ -238,7 +256,7 @@ func getPorts(page int) []common.Port {
 func main() {
 	initDatabase()
 	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
