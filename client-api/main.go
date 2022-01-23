@@ -83,7 +83,6 @@ func main() {
 	var addr = common.FromEnvVar(common.GrpcServerAddr, common.DefaultAddress)
 	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
 	fullAddr := fmt.Sprintf("%s:%s", addr, port)
-	println(fullAddr)
 	conn, err := grpc.Dial(fullAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
