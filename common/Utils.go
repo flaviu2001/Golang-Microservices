@@ -1,11 +1,22 @@
 package common
 
-import "Bleenco/rpc"
+import (
+	"Bleenco/rpc"
+	"os"
+)
 
 func CheckError(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func FromEnvVar(envName string, defaultValue string) string {
+	var value string
+	if value = os.Getenv(envName); value == "" {
+		value = defaultValue
+	}
+	return value
 }
 
 func RpcPortToJsonPort(rpcPort *rpc.RpcPort) Port {

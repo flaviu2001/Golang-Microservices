@@ -80,16 +80,10 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var addr string
-	var port string
-	if addr = os.Getenv(common.GrpcServerAddr); addr == "" {
-		addr = common.DefaultAddress
-	}
-	if port = os.Getenv(common.GrpcServerPort); port == "" {
-		port = common.DefaultPort
-	}
-	addr = fmt.Sprintf("%s:%s", addr, port)
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	var addr = common.FromEnvVar(common.GrpcServerAddr, common.DefaultAddress)
+	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
+	fullAddr := fmt.Sprintf("%s:%s", addr, port)
+	conn, err := grpc.Dial(fullAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}

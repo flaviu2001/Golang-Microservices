@@ -11,15 +11,9 @@ import (
 	"io"
 	"log"
 	"net"
-	"os"
 )
 
 const (
-	host             = "localhost"
-	port             = 5432
-	user             = "postgres"
-	password         = "bunica"
-	dbname           = "bleenco"
 	createAliasTable = "CREATE TABLE IF NOT EXISTS aliases (" +
 		"id SERIAL PRIMARY KEY," +
 		"port_id BIGINT REFERENCES ports(id)," +
@@ -84,7 +78,12 @@ func (s *server) Select(rpcPage *pb.RpcPage, stream pb.Communicator_SelectServer
 }
 
 func getConnection() *sql.DB {
-	dbinfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	host := common.FromEnvVar(common.EnvDbHost, common.DbHost)
+	port := common.FromEnvVar(common.EnvDbPort, common.DbPort)
+	user := common.FromEnvVar(common.EnvDbUser, common.DbUser)
+	password := common.FromEnvVar(common.EnvDbPass, common.DbPassword)
+	dbname := common.FromEnvVar(common.EnvDbName, common.DbName)
+	dbinfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 	db, err := sql.Open("postgres", dbinfo)
 	if err != nil {
 		panic(err)
@@ -238,10 +237,7 @@ func getPorts(page int) []common.Port {
 
 func main() {
 	initDatabase()
-	var port string
-	if port = os.Getenv(common.GrpcServerPort); port == "" {
-		port = common.DefaultPort
-	}
+	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%s", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
