@@ -43,6 +43,8 @@ func (s *server) Select(rpcPage *pb.RpcPage, stream pb.Communicator_SelectServer
 }
 
 func main() {
+	// Here the grpc server is initialised according to the port specified in an environment variable (or a default value
+	// in the case of its omission)
 	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {

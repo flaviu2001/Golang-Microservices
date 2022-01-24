@@ -1,5 +1,0 @@
-sudo docker run -d --name=postgres-bleenco -p 5432:5432 -v postgres-volume:/var/lib/postgresql/data -e POSTGRES_PASSWORD=bunica postgres
-sudo docker exec -it postgres-bleenco psql -d bleenco -U postgres
-protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative rpc/rpc.proto
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
-go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26

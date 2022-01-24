@@ -28,10 +28,13 @@ const (
 		"province VARCHAR," +
 		"timezone VARCHAR," +
 		"code VARCHAR)"
-	removeAliases       = "DELETE FROM aliases WHERE unlocs = $1"
-	removeRegions       = "DELETE FROM regions WHERE unlocs = $1"
-	selectHighestId     = "SELECT GREATEST(0, max(id)) from (select id from ports order by id desc limit 1) t"
-	selectPortId        = "SELECT id FROM ports WHERE unlocs = $1"
+
+	removeAliases = "DELETE FROM aliases WHERE unlocs = $1"
+	removeRegions = "DELETE FROM regions WHERE unlocs = $1"
+
+	selectHighestId = "SELECT GREATEST(0, max(id)) from (select id from ports order by id desc limit 1) t"
+	selectPortId    = "SELECT id FROM ports WHERE unlocs = $1"
+
 	upsertPortStatement = "INSERT INTO ports " +
 		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) " +
 		"ON CONFLICT (unlocs) DO UPDATE " +
@@ -44,10 +47,13 @@ const (
 )
 
 type PostgresRepository struct {
+	// This flag specifies whether the tables are ensured to be created and the operations are safe to run
 	databaseInitialized bool
-	conn                *sql.DB
+	// This is the variable that holds a connection to the database
+	conn *sql.DB
 }
 
+// initDatabase This method attempts to create the necessary tables and marks a flag upon success.
 func (p *PostgresRepository) initDatabase() {
 	if p.databaseInitialized {
 		return
@@ -61,6 +67,7 @@ func (p *PostgresRepository) initDatabase() {
 	p.databaseInitialized = true
 }
 
+// initConnection This method initialises the connection to a postgres database
 func (p *PostgresRepository) initConnection() {
 	host := common.FromEnvVar(common.EnvDbHost, common.DbHost)
 	port := common.FromEnvVar(common.EnvDbPort, common.DbPort)
@@ -76,10 +83,13 @@ func (p *PostgresRepository) initConnection() {
 	p.initDatabase()
 }
 
+// closeConnection This method will be called when there is no more use for the connection.
 func (p *PostgresRepository) closeConnection() {
 	err := p.conn.Close()
 	common.CheckError(err)
 }
+
+// The following methods have their documentation provided in the interface
 
 func (p *PostgresRepository) RemoveAliases(unlocs string) {
 	p.initConnection()

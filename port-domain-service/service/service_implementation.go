@@ -9,6 +9,7 @@ type Impl struct {
 	Repository repository.Repository
 }
 
+// Upsert Thid method removes the aliases and regions of a port to ensure that inserts will succeed after its upsertion.
 func (i *Impl) Upsert(port common.Port) {
 	unlocs := port.Unlocs[0]
 	i.Repository.RemoveAliases(unlocs)

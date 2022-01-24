@@ -1,52 +1,45 @@
 # Golang microservices assignment
 
-**Congratulations for making it into the next round of our interview!**
+### Features
+- Client and Service communication with grpc
+- Postgres database for persistance
+- Docker and docker-compose
+- Read JSON in a buffered way to avoid loading the entire file in memory
+- Pagination for data retrieval to avoid overloading the network
+- Package based separation of concerns
+- Goland builtin linter
 
-This assignment is meant to prove your golang proficiency or how fast can you learn new concepts. :)
+### Client
+The client parses a json file with ports and feeds it the server for persistence, allowing them to afterwards be retrieved. It can be configured to connect to the grpc server at an arbitrary address through environment variables. `GRPC_SERVER_ADDR` for its address and `GRPC_SERVER_PORT` for its port.
 
-Your code structure should follow microservices best practices and our evaluation will focus primarily on your ability to follow good design principles and less on correctness and completeness of algorithms. During the face to face interview you will have the opportunity to explain your design choices and provide justifications for the parts that you omitted.
+### Server
+The server allows upsertion of ports and paginated retrievals through remote procedure calling. Similar to the client, the grpc port must also be specified in the `GRPC_SERVER_PORT` environment variable. Furthermore, the postgres database connection information is expected through `DBHOST`, `DBPORT`, `DBUSER`, `DBPASS` and `DBNAME`. You can find their defaults in the common/constants.go file. 
 
-## Evaluation points in order of importance
+### Running
+The application can be run by executing `docker-compose up`, the environment variables are set up in a way that requires no further setting up to function well. You can then test the app by running `curl localhost:8080/parse` to parse the json file and `curl localhost:8080/select/3` to retrieve the third page, or any page of data (a page contains 100 ports).
 
-- use of clean code, which is self documenting
-- use of packages to achieve separation of concerns
-- use of domain driven design
-- use of golang idiomatic principles
-- use of docker
-- tests for business logic
-- use of code quality checks such as linters and build tools
-- use of git with appropriate commit messages
-- documentation: README.md and inline code comments
-- you must use go modules and a version of go >= 1.16
+It is important to execute `protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative rpc/rpc.proto` whenever you modify `rpc/rpc.proto`. This method generates the go code that allows the bridging between client and server.
 
-Please avoid using frameworks such as `go-kit` and `go-micro` since one of the purposes of the assignment is to evaluate the candidate ability of structuring the solution in their own way.
-If you have questions about the test, please draw your own conclusions.
+As you might have noticed in the dockerfiles, the following commands are necessary for grpc to work
+```
+apt install -y protobuf-compiler # or the equivalent of your distro
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
+```
 
+If you're using docker you do not need to run them, but you do need to if you plan to run manually.
 
-## Instructions
-
-- Given a JSON file with ports data (ports.json), write 2 services (Client API, PortDomainService)
-- Client API should parse the JSON file and have REST interface
-- This JSON file is of unknown size, it can contain several millions of records (i.e. 20Gb+ in size, which can't be read at once)
-- Client API has limited resources available (e.g. 200MB ram)
-- While reading JSON file, Client API calls PortDomainService, that either creates a new record in a database, or updates the existing one
-- PortDomainService should store the data in a database that contains ports, representing the latest version found in the JSON. 
-- Database can be Map in memory
-- Client API should provide an endpoint to retrieve the data from the PortDomainService
-- Each service should be built using Dockerfile
-- Use gRPC as a transport between services
-
-Choose the approach that you think is best (i.e. most flexible).
-
-## Bonus points
-
-- Database in docker container
-- Domain Driven Design
-- Docker-compose file
-
-## Note
-We are looking for the ClientAPI (the service reading the JSON) to be written in a way that is easy to reuse, give or take a few customisations.
-The services themselves should handle certain signals correctly (e.g. a TERM or KILL signal should result in a graceful shutdown).
-
-**Important:** Please fork this repository, create a branch in your fork and make commits there. The commit messages have to follow our styleguide (see [this commits](https://github.com/bleenco/bproxy/commits/master) for the reference). When you are done, please submit your solution by creating Pull Request into master branch of the main repository. Please make sure to add any installation changes to `README.md` and the amount of time (hours / minutes) spent on the task. It is expected that both solutions contain sufficient code documentation and test coverage.
-Good luck! 
+### Time spent
+- learning golang basics: 3 hours
+- port-parser branch: 2 hours
+  - the part of the code that reads the json file
+- microservices branch: 3 hours
+  - here I structured the code to communicate through REST apis between client and server
+- select-ports branch: 2 hours
+  - here I implemented the paginated retrieval of data
+- grpc-refactor branch: 3 hours
+  - here I refactored the code to change from REST to grpc as the communication channel between client and server
+- dockerize branch: 4 hours
+  - here I dockerized the application and wrote the docker-compose.yaml as well
+- tests and documentation: 3 hours
+  - here I wrote a couple of tests and provided documentation inside the code and also wrote this README.md file

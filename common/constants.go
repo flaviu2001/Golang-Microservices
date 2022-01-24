@@ -17,7 +17,8 @@ const (
 	EnvDbName  string = "DBNAME"
 	DbName     string = "bleenco"
 
-	PortsJsonFilename string = "ports.json"
-	ChannelSize       int    = 10000
-	PageSize          int    = 100
+	PortsJsonFilename     string = "ports.json"
+	PortsJsonFilenameTest string = "ports_test.json"
+	ChannelSize           int    = 10000
+	PageSize              int    = 100
 )
