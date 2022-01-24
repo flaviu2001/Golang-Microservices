@@ -41,5 +41,6 @@ If you're using docker you do not need to run them, but you do need to if you pl
   - here I refactored the code to change from REST to grpc as the communication channel between client and server
 - dockerize branch: 4 hours
   - here I dockerized the application and wrote the docker-compose.yaml as well
+  - I also refactored the code to structure the code into a repository and service pattern
 - tests and documentation: 3 hours
   - here I wrote a couple of tests and provided documentation inside the code and also wrote this README.md file
