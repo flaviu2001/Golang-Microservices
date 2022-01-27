@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Bleenco/client-api/config"
 	"Bleenco/common"
 	pb "Bleenco/rpc"
 	"fmt"
@@ -16,9 +17,8 @@ var c pb.CommunicatorClient
 func main() {
 	// The port domain service address is received from environment variables, otherwise defaulted to what is specified
 	// in the constants file
-	var addr = common.FromEnvVar(common.GrpcServerAddr, common.DefaultAddress)
-	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
-	fullAddr := fmt.Sprintf("%s:%s", addr, port)
+	cfg := config.NewConfig()
+	fullAddr := fmt.Sprintf("%s:%s", cfg.GrpcServerAddr, cfg.GrpcServerPort)
 	conn, err := grpc.Dial(fullAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
