@@ -13,6 +13,7 @@ func TestGetPorts(t *testing.T) {
 	var err error
 	var entry common.Entry
 	var entries = make([]common.Entry, 0)
+
 	for running {
 		select {
 		case entry, entriesOpen = <-entriesChannel:
@@ -33,9 +34,11 @@ func TestGetPorts(t *testing.T) {
 			}
 		}
 	}
+
 	if len(entries) != 1 {
 		t.Fatalf("Entries length should be 1")
 	}
+
 	port := entries[0].Port
 	if !(port.Name == "Ajman" && port.City == "Ajman" && port.Country == "United Arab Emirates" &&
 		port.Alias[0] == "alias1" && len(port.Regions) == 0 && len(port.Coordinates) == 2 && port.Province == "Ajman" &&

@@ -18,6 +18,7 @@ func TestRpcPortToJsonPort(t *testing.T) {
 		Unlocs:      []string{"h"},
 		Code:        "i",
 	}
+
 	port := RpcPortToJsonPort(rpcPort)
 	if !(port.Name == "a" && port.City == "b" && port.Country == "c" && len(port.Alias) == 1 &&
 		port.Alias[0] == "d" && len(port.Regions) == 1 && port.Regions[0] == "e" && len(port.Coordinates) == 2 &&
@@ -40,6 +41,7 @@ func TestJsonPortToRpcPort(t *testing.T) {
 		Unlocs:      []string{"h"},
 		Code:        "i",
 	}
+
 	port := JsonPortToRpcPort(jsonPort)
 	if !(port.Name == "a" && port.City == "b" && port.Country == "c" && len(port.Alias) == 1 &&
 		port.Alias[0] == "d" && len(port.Regions) == 1 && port.Regions[0] == "e" && len(port.Coordinates) == 2 &&

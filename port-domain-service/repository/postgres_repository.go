@@ -58,12 +58,16 @@ func (p *PostgresRepository) initDatabase() {
 	if p.databaseInitialized {
 		return
 	}
+
 	_, err := p.conn.Exec(createPortTable)
 	common.CheckError(err)
+
 	_, err = p.conn.Exec(createAliasTable)
 	common.CheckError(err)
+
 	_, err = p.conn.Exec(createRegionTable)
 	common.CheckError(err)
+
 	p.databaseInitialized = true
 }
 
@@ -75,10 +79,13 @@ func (p *PostgresRepository) initConnection() {
 	password := common.FromEnvVar(common.EnvDbPass, common.DbPassword)
 	dbname := common.FromEnvVar(common.EnvDbName, common.DbName)
 	dbinfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+
 	db, err := sql.Open("postgres", dbinfo)
+
 	if err != nil {
 		common.CheckError(err)
 	}
+
 	p.conn = db
 	p.initDatabase()
 }
@@ -94,6 +101,7 @@ func (p *PostgresRepository) closeConnection() {
 func (p *PostgresRepository) RemoveAliases(unlocs string) {
 	p.initConnection()
 	defer p.closeConnection()
+
 	_, err := p.conn.Exec(removeAliases, unlocs)
 	common.CheckError(err)
 }
@@ -101,6 +109,7 @@ func (p *PostgresRepository) RemoveAliases(unlocs string) {
 func (p *PostgresRepository) RemoveRegions(unlocs string) {
 	p.initConnection()
 	defer p.closeConnection()
+
 	_, err := p.conn.Exec(removeRegions, unlocs)
 	common.CheckError(err)
 }
@@ -108,21 +117,26 @@ func (p *PostgresRepository) RemoveRegions(unlocs string) {
 func (p *PostgresRepository) GetNewPortId() int64 {
 	p.initConnection()
 	defer p.closeConnection()
+
 	rows, err := p.conn.Query(selectHighestId)
 	common.CheckError(err)
 	var portId int64
+
 	for rows.Next() {
 		err = rows.Scan(&portId)
 		common.CheckError(err)
 	}
+
 	err = rows.Close()
 	common.CheckError(err)
+
 	return portId + 1
 }
 
 func (p *PostgresRepository) UpsertPort(portId int64, unlocs string, name string, city string, country string, coord1 interface{}, coord2 interface{}, province string, timezone string, code string) {
 	p.initConnection()
 	defer p.closeConnection()
+
 	_, err := p.conn.Exec(upsertPortStatement, portId, unlocs, name, city, country, coord1, coord2, province, timezone, code)
 	common.CheckError(err)
 }
@@ -130,23 +144,29 @@ func (p *PostgresRepository) UpsertPort(portId int64, unlocs string, name string
 func (p *PostgresRepository) FindPortId(unlocs string) int64 {
 	p.initConnection()
 	defer p.closeConnection()
+
 	rows, err := p.conn.Query(selectPortId, unlocs)
 	common.CheckError(err)
+
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		common.CheckError(err)
 	}(rows)
+
 	var portId int64
+
 	for rows.Next() {
 		err = rows.Scan(&portId)
 		common.CheckError(err)
 	}
+
 	return portId
 }
 
 func (p *PostgresRepository) InsertAlias(portId int64, unlocs string, alias string) {
 	p.initConnection()
 	defer p.closeConnection()
+
 	_, err := p.conn.Exec(insertAlias, portId, unlocs, alias)
 	common.CheckError(err)
 }
@@ -154,6 +174,7 @@ func (p *PostgresRepository) InsertAlias(portId int64, unlocs string, alias stri
 func (p *PostgresRepository) InsertRegion(portId int64, unlocs string, region string) {
 	p.initConnection()
 	defer p.closeConnection()
+
 	_, err := p.conn.Exec(insertRegion, portId, unlocs, region)
 	common.CheckError(err)
 }
@@ -161,47 +182,60 @@ func (p *PostgresRepository) InsertRegion(portId int64, unlocs string, region st
 func (p *PostgresRepository) GetAliases(unlocs string) []string {
 	p.initConnection()
 	defer p.closeConnection()
+
 	rows, err := p.conn.Query(selectAliases, unlocs)
 	common.CheckError(err)
+
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		common.CheckError(err)
 	}(rows)
+
 	aliases := make([]string, 0)
+
 	for rows.Next() {
 		var alias string
 		err := rows.Scan(&alias)
 		common.CheckError(err)
 		aliases = append(aliases, alias)
 	}
+
 	return aliases
 }
 
 func (p *PostgresRepository) GetRegions(unlocs string) []string {
 	p.initConnection()
 	defer p.closeConnection()
+
 	rows, err := p.conn.Query(selectRegions, unlocs)
 	common.CheckError(err)
+
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
 		common.CheckError(err)
 	}(rows)
+
 	regions := make([]string, 0)
+
 	for rows.Next() {
 		var region string
 		err := rows.Scan(&region)
 		common.CheckError(err)
 		regions = append(regions, region)
 	}
+
 	return regions
 }
 
 func (p *PostgresRepository) SelectPorts(lowerBound int, upperBound int) []common.Port {
 	p.initConnection()
 	defer p.closeConnection()
+
 	rows, err := p.conn.Query(paginatedSelectPort, lowerBound, upperBound)
 	common.CheckError(err)
+
 	ports := make([]common.Port, 0)
+
 	for rows.Next() {
 		var id int64
 		var unlocs string
@@ -213,14 +247,17 @@ func (p *PostgresRepository) SelectPorts(lowerBound int, upperBound int) []commo
 		var province string
 		var timezone string
 		var code *string
+
 		err := rows.Scan(&id, &unlocs, &name, &city, &country, &coord1, &coord2, &province, &timezone, &code)
 		common.CheckError(err)
+
 		var coordinates []float32
 		if coord1 == nil {
 			coordinates = []float32{}
 		} else {
 			coordinates = []float32{*coord1, *coord2}
 		}
+
 		var dereferencedCode = ""
 		if code != nil {
 			dereferencedCode = *code

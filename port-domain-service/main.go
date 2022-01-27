@@ -22,12 +22,15 @@ type server struct {
 func (s *server) Upsert(stream pb.Communicator_UpsertServer) error {
 	for {
 		rpcPort, err := stream.Recv()
+
 		if err == io.EOF {
 			return stream.SendAndClose(&emptypb.Empty{})
 		}
+
 		if err != nil {
 			return err
 		}
+
 		s.service.Upsert(common.RpcPortToJsonPort(rpcPort))
 	}
 }
@@ -47,12 +50,15 @@ func main() {
 	// in the case of its omission)
 	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
+
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+
 	s := grpc.NewServer()
 	pb.RegisterCommunicatorServer(s, &server{service: &service.Impl{Repository: &repository.PostgresRepository{}}})
 	log.Printf("server listening at %v", lis.Addr())
+
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

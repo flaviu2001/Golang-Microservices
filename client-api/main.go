@@ -26,12 +26,15 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	go func() {
 		entriesChannel, errorChannel := parser.GetPorts(common.PortsJsonFilename)
+
 		// entriesOpen and errorOpen mark whether the channels are still open or closed.
 		entriesOpen := true
 		errorOpen := true
 		running := true
+
 		// Entry read from the channel
 		var entry common.Entry
+
 		// Call to the server to upsert the entries
 		stream, err := c.Upsert(context.Background())
 		for running {
@@ -61,8 +64,10 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 				}
 			}
 		}
+
 		// Close the stream to let the server know no more upserts will happen
 		_, err = stream.CloseAndRecv()
+
 		if err != nil {
 			common.CheckError(err)
 		}
@@ -80,15 +85,19 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 	page := mux.Vars(r)["page"]
 	intPage, err := strconv.Atoi(page)
 	common.CheckError(err)
+
 	// call to the port domain server to receive the required ports
 	stream, err := c.Select(context.Background(), &pb.RpcPage{Page: int32(intPage)})
 	var ports = make([]common.Port, 0)
+
 	for {
 		port, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
+
 		common.CheckError(err)
+
 		// Build a list from all the ports and return it
 		ports = append(ports, common.RpcPortToJsonPort(port))
 	}
@@ -104,13 +113,16 @@ func main() {
 	var port = common.FromEnvVar(common.GrpcServerPort, common.DefaultPort)
 	fullAddr := fmt.Sprintf("%s:%s", addr, port)
 	conn, err := grpc.Dial(fullAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
+
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		common.CheckError(err)
 	}(conn)
+
 	c = pb.NewCommunicatorClient(conn)
 
 	// The REST Api is created using mux and two endpoints are provided.
