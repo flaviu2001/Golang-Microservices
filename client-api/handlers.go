@@ -15,63 +15,78 @@ import (
 	"strconv"
 )
 
+var currentlyParsing bool
+
 // handleParser this method starts parsing the json file and each Port, one by one, will be fed to the
 // port domain service to be persisted. All this happens in a background thread so that the user will
 // not have to wait for the call to finish while all this is happening.
 func handleParser(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	go func() {
-		entriesChannel, errorChannel := parser.GetPorts(constants.PortsJsonFilename)
 
-		// entriesOpen and errorOpen mark whether the channels are still open or closed.
-		entriesOpen := true
-		errorOpen := true
-		running := true
+	// Check whether the parser is running and disallow concurrent executions of what achieves the same thing.
+	if !currentlyParsing {
+		currentlyParsing = true
+		go func() {
+			entriesChannel, errorChannel := parser.GetPorts(constants.PortsJsonFilename)
 
-		// Entry read from the channel
-		var entry common.Entry
+			// entriesOpen and errorOpen mark whether the channels are still open or closed.
+			entriesOpen := true
+			errorOpen := true
+			running := true
 
-		// Call to the server to upsert the entries
-		stream, err := c.Upsert(context.Background())
-		for running {
-			select {
-			// There is an entry in the channel
-			case entry, entriesOpen = <-entriesChannel:
-				if entriesOpen {
-					// Send the entry through the stream to the port domain service
-					if err := stream.Send(common.JsonPortToRpcPort(entry.Port)); err != nil {
-						common.CheckError(err)
+			// Entry read from the channel
+			var entry common.Entry
+
+			// Call to the server to upsert the entries
+			stream, err := c.Upsert(context.Background())
+			for running {
+				select {
+				// There is an entry in the channel
+				case entry, entriesOpen = <-entriesChannel:
+					if entriesOpen {
+						// Send the entry through the stream to the port domain service
+						if err := stream.Send(common.JsonPortToRpcPort(entry.Port)); err != nil {
+							common.CheckError(err)
+						}
+					} else {
+						// Mark the entriesChannel as nil so that no further reads will succeed or even be attempted
+						entriesChannel = nil
 					}
-				} else {
-					// Mark the entriesChannel as nil so that no further reads will succeed or even be attempted
-					entriesChannel = nil
-				}
-			case err, errorOpen = <-errorChannel:
-				if errorOpen {
-					_, _ = fmt.Fprintf(os.Stderr, "%s", err.Error())
-				} else {
-					// Similar to entriesChannel
-					errorChannel = nil
-				}
-			default:
-				// If both channels are found to be closed the loop will finish and the method will be allowed to exit.
-				if entriesChannel == nil && errorChannel == nil {
-					running = false
+				case err, errorOpen = <-errorChannel:
+					if errorOpen {
+						_, _ = fmt.Fprintf(os.Stderr, "%s", err.Error())
+					} else {
+						// Similar to entriesChannel
+						errorChannel = nil
+					}
+				default:
+					// If both channels are found to be closed the loop will finish and the method will be allowed to exit.
+					if entriesChannel == nil && errorChannel == nil {
+						running = false
+					}
 				}
 			}
-		}
 
-		// Close the stream to let the server know no more upserts will happen
-		_, err = stream.CloseAndRecv()
+			// Close the stream to let the server know no more upserts will happen
+			_, err = stream.CloseAndRecv()
 
-		if err != nil {
-			common.CheckError(err)
-		}
-	}()
-	// Return a simple response to the user
-	var response = common.JsonStatusResponse{Status: "started"}
-	err := json.NewEncoder(w).Encode(response)
-	common.CheckError(err)
+			if err != nil {
+				common.CheckError(err)
+			}
+
+			currentlyParsing = false
+		}()
+
+		// Return a simple response to the user
+		var response = common.JsonStatusResponse{Status: "started"}
+		err := json.NewEncoder(w).Encode(response)
+		common.CheckError(err)
+	} else {
+		// Return a simple response to the user
+		var response = common.JsonStatusResponse{Status: "running"}
+		err := json.NewEncoder(w).Encode(response)
+		common.CheckError(err)
+	}
 }
 
 // handleSelect this method returns the persisted Ports from the port domain service using pagination. You specify the
