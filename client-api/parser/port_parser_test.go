@@ -1,12 +1,13 @@
 package parser
 
 import (
+	"Bleenco/client-api/constants"
 	"Bleenco/common"
 	"testing"
 )
 
 func TestGetPorts(t *testing.T) {
-	entriesChannel, errorChannel := GetPorts(common.PortsJsonFilenameTest)
+	entriesChannel, errorChannel := GetPorts(constants.PortsJsonFilenameTest)
 	entriesOpen := true
 	errorOpen := true
 	running := true

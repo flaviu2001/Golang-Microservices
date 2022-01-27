@@ -1,8 +1,9 @@
 package parser
 
 import (
+	"Bleenco/client-api/constants"
+	"Bleenco/client-api/errors"
 	"Bleenco/common"
-	"Bleenco/common/errors"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,8 +14,8 @@ import (
 // with each entry found. Upon encountering one error the whole method halts and no further entries are fed.
 // The method is non-blocking, and the channels receive their data in a background thread that produces said data.
 func GetPorts(filename string) (entriesChannel chan common.Entry, errorChannel chan error) {
-	entriesChannel = make(chan common.Entry, common.ChannelSize)
-	errorChannel = make(chan error, common.ChannelSize)
+	entriesChannel = make(chan common.Entry, constants.ChannelSize)
+	errorChannel = make(chan error, constants.ChannelSize)
 
 	go func() {
 		defer close(entriesChannel)

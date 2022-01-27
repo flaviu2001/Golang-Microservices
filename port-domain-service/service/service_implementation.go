@@ -2,6 +2,7 @@ package service
 
 import (
 	"Bleenco/common"
+	"Bleenco/port-domain-service/constants"
 	"Bleenco/port-domain-service/repository"
 )
 
@@ -40,7 +41,7 @@ func (i *Impl) Upsert(port common.Port) {
 }
 
 func (i *Impl) Select(page int) []common.Port {
-	lowerBound := page * common.PageSize
-	upperBound := (page+1)*common.PageSize - 1
+	lowerBound := page * constants.PageSize
+	upperBound := (page+1)*constants.PageSize - 1
 	return i.Repository.SelectPorts(lowerBound, upperBound)
 }
