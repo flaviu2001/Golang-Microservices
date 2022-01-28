@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"Bleenco/common"
+	"Bleenco/port-domain-service/utils"
 	"database/sql"
 )
 
@@ -10,11 +10,11 @@ func (p *RepositoryImpl) GetRegions(unlocs string) []string {
 	defer p.closeConnection()
 
 	rows, err := p.conn.Query(selectRegions, unlocs)
-	common.CheckError(err)
+	utils.CheckError(err)
 
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
-		common.CheckError(err)
+		utils.CheckError(err)
 	}(rows)
 
 	regions := make([]string, 0)
@@ -22,7 +22,7 @@ func (p *RepositoryImpl) GetRegions(unlocs string) []string {
 	for rows.Next() {
 		var region string
 		err := rows.Scan(&region)
-		common.CheckError(err)
+		utils.CheckError(err)
 		regions = append(regions, region)
 	}
 
@@ -34,7 +34,7 @@ func (p *RepositoryImpl) InsertRegion(portId int64, unlocs string, region string
 	defer p.closeConnection()
 
 	_, err := p.conn.Exec(insertRegion, portId, unlocs, region)
-	common.CheckError(err)
+	utils.CheckError(err)
 }
 
 func (p *RepositoryImpl) RemoveRegions(unlocs string) {
@@ -42,5 +42,5 @@ func (p *RepositoryImpl) RemoveRegions(unlocs string) {
 	defer p.closeConnection()
 
 	_, err := p.conn.Exec(removeRegions, unlocs)
-	common.CheckError(err)
+	utils.CheckError(err)
 }

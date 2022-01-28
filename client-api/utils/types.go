@@ -1,4 +1,4 @@
-package common
+package utils
 
 type JsonStatusResponse struct {
 	Status string `json:"status"`

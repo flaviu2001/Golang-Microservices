@@ -3,7 +3,7 @@ package main
 import (
 	"Bleenco/client-api/constants"
 	"Bleenco/client-api/parser"
-	"Bleenco/common"
+	"Bleenco/client-api/utils"
 	pb "Bleenco/rpc"
 	"context"
 	"encoding/json"
@@ -13,9 +13,11 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 )
 
 var currentlyParsing bool
+var mutex sync.Mutex
 
 // handleParser this method starts parsing the json file and each Port, one by one, will be fed to the
 // port domain service to be persisted. All this happens in a background thread so that the user will
@@ -23,9 +25,12 @@ var currentlyParsing bool
 func handleParser(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	// Protect currentlyParsing with a mutex
+	mutex.Lock()
 	// Check whether the parser is running and disallow concurrent executions of what achieves the same thing.
 	if !currentlyParsing {
 		currentlyParsing = true
+		mutex.Unlock()
 		go func() {
 			entriesChannel, errorChannel := parser.GetPorts(constants.PortsJsonFilename)
 
@@ -35,7 +40,7 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 			running := true
 
 			// Entry read from the channel
-			var entry common.Entry
+			var entry utils.Entry
 
 			// Call to the server to upsert the entries
 			stream, err := c.Upsert(context.Background())
@@ -45,8 +50,8 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 				case entry, entriesOpen = <-entriesChannel:
 					if entriesOpen {
 						// Send the entry through the stream to the port domain service
-						if err := stream.Send(common.JsonPortToRpcPort(entry.Port)); err != nil {
-							common.CheckError(err)
+						if err := stream.Send(utils.JsonPortToRpcPort(entry.Port)); err != nil {
+							utils.CheckError(err)
 						}
 					} else {
 						// Mark the entriesChannel as nil so that no further reads will succeed or even be attempted
@@ -71,21 +76,25 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 			_, err = stream.CloseAndRecv()
 
 			if err != nil {
-				common.CheckError(err)
+				utils.CheckError(err)
 			}
 
+			mutex.Lock()
 			currentlyParsing = false
+			mutex.Unlock()
 		}()
 
 		// Return a simple response to the user
-		var response = common.JsonStatusResponse{Status: "started"}
+		var response = utils.JsonStatusResponse{Status: "started"}
 		err := json.NewEncoder(w).Encode(response)
-		common.CheckError(err)
+		utils.CheckError(err)
 	} else {
+		mutex.Unlock()
+
 		// Return a simple response to the user
-		var response = common.JsonStatusResponse{Status: "running"}
+		var response = utils.JsonStatusResponse{Status: "running"}
 		err := json.NewEncoder(w).Encode(response)
-		common.CheckError(err)
+		utils.CheckError(err)
 	}
 }
 
@@ -95,11 +104,11 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	page := mux.Vars(r)["page"]
 	intPage, err := strconv.Atoi(page)
-	common.CheckError(err)
+	utils.CheckError(err)
 
 	// call to the port domain server to receive the required ports
 	stream, err := c.Select(context.Background(), &pb.RpcPage{Page: int32(intPage)})
-	var ports = make([]common.Port, 0)
+	var ports = make([]utils.Port, 0)
 
 	for {
 		port, err := stream.Recv()
@@ -107,12 +116,12 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		common.CheckError(err)
+		utils.CheckError(err)
 
 		// Build a list from all the ports and return it
-		ports = append(ports, common.RpcPortToJsonPort(port))
+		ports = append(ports, utils.RpcPortToJsonPort(port))
 	}
 
-	err = json.NewEncoder(w).Encode(common.JsonPortsResponse{Status: "success", Ports: ports})
-	common.CheckError(err)
+	err = json.NewEncoder(w).Encode(utils.JsonPortsResponse{Status: "success", Ports: ports})
+	utils.CheckError(err)
 }

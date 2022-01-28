@@ -1,9 +1,9 @@
 package service
 
 import (
-	"Bleenco/common"
 	"Bleenco/port-domain-service/constants"
 	"Bleenco/port-domain-service/repository"
+	"Bleenco/port-domain-service/utils"
 )
 
 type Impl struct {
@@ -11,7 +11,7 @@ type Impl struct {
 }
 
 // Upsert Thid method removes the aliases and regions of a port to ensure that inserts will succeed after its upsertion.
-func (i *Impl) Upsert(port common.Port) {
+func (i *Impl) Upsert(port utils.Port) {
 	unlocs := port.Unlocs[0]
 
 	i.Repository.RemoveAliases(unlocs)
@@ -40,7 +40,7 @@ func (i *Impl) Upsert(port common.Port) {
 	}
 }
 
-func (i *Impl) Select(page int) []common.Port {
+func (i *Impl) Select(page int) []utils.Port {
 	lowerBound := page * constants.PageSize
 	upperBound := (page+1)*constants.PageSize - 1
 	return i.Repository.SelectPorts(lowerBound, upperBound)

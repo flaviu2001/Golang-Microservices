@@ -1,6 +1,9 @@
 package config
 
-import "Bleenco/common"
+import (
+	"Bleenco/client-api/constants"
+	"Bleenco/client-api/utils"
+)
 
 type Config struct {
 	GrpcServerAddr string
@@ -9,7 +12,7 @@ type Config struct {
 
 func NewConfig() Config {
 	return Config{
-		GrpcServerAddr: common.FromEnvVar(common.GrpcServerAddr, common.DefaultAddress),
-		GrpcServerPort: common.FromEnvVar(common.GrpcServerPort, common.DefaultPort),
+		GrpcServerAddr: utils.FromEnvVar(constants.GrpcServerAddr, constants.DefaultAddress),
+		GrpcServerPort: utils.FromEnvVar(constants.GrpcServerPort, constants.DefaultPort),
 	}
 }

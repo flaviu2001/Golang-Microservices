@@ -2,7 +2,7 @@ package parser
 
 import (
 	"Bleenco/client-api/constants"
-	"Bleenco/common"
+	"Bleenco/client-api/utils"
 	"testing"
 )
 
@@ -12,8 +12,8 @@ func TestGetPorts(t *testing.T) {
 	errorOpen := true
 	running := true
 	var err error
-	var entry common.Entry
-	var entries = make([]common.Entry, 0)
+	var entry utils.Entry
+	var entries = make([]utils.Entry, 0)
 
 	for running {
 		select {

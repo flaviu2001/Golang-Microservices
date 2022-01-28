@@ -3,7 +3,7 @@ package parser
 import (
 	"Bleenco/client-api/constants"
 	"Bleenco/client-api/errors"
-	"Bleenco/common"
+	"Bleenco/client-api/utils"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,8 +13,8 @@ import (
 // It parses (with a buffered reader) the json specified in the filename parameter and feeds the entry channel
 // with each entry found. Upon encountering one error the whole method halts and no further entries are fed.
 // The method is non-blocking, and the channels receive their data in a background thread that produces said data.
-func GetPorts(filename string) (entriesChannel chan common.Entry, errorChannel chan error) {
-	entriesChannel = make(chan common.Entry, constants.ChannelSize)
+func GetPorts(filename string) (entriesChannel chan utils.Entry, errorChannel chan error) {
+	entriesChannel = make(chan utils.Entry, constants.ChannelSize)
 	errorChannel = make(chan error, constants.ChannelSize)
 
 	go func() {
@@ -54,7 +54,7 @@ func GetPorts(filename string) (entriesChannel chan common.Entry, errorChannel c
 				return
 			}
 
-			entry := common.Entry{}
+			entry := utils.Entry{}
 
 			switch token.(type) {
 			case string:
@@ -65,9 +65,7 @@ func GetPorts(filename string) (entriesChannel chan common.Entry, errorChannel c
 			}
 
 			// Read the whole port from the json
-			err = decoder.Decode(&entry.Port)
-
-			if err != nil {
+			if err = decoder.Decode(&entry.Port); err != nil {
 				errorChannel <- &errors.PortError{Text: "Unable to read port"}
 				return
 			}

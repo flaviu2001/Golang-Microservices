@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Bleenco/common"
 	"Bleenco/port-domain-service/service"
+	"Bleenco/port-domain-service/utils"
 	pb "Bleenco/rpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
@@ -25,14 +25,14 @@ func (s *server) Upsert(stream pb.Communicator_UpsertServer) error {
 			return err
 		}
 
-		s.service.Upsert(common.RpcPortToJsonPort(rpcPort))
+		s.service.Upsert(utils.RpcPortToJsonPort(rpcPort))
 	}
 }
 
 func (s *server) Select(rpcPage *pb.RpcPage, stream pb.Communicator_SelectServer) error {
 	ports := s.service.Select(int(rpcPage.Page))
 	for _, port := range ports {
-		if err := stream.Send(common.JsonPortToRpcPort(port)); err != nil {
+		if err := stream.Send(utils.JsonPortToRpcPort(port)); err != nil {
 			return err
 		}
 	}

@@ -1,8 +1,8 @@
 package config
 
 import (
-	"Bleenco/common"
 	"Bleenco/port-domain-service/constants"
+	"Bleenco/port-domain-service/utils"
 )
 
 type Config struct {
@@ -16,11 +16,11 @@ type Config struct {
 
 func NewConfig() Config {
 	return Config{
-		GrpcServerPort: common.FromEnvVar(common.GrpcServerPort, common.DefaultPort),
-		DbHost:         common.FromEnvVar(constants.EnvDbHost, constants.DbHost),
-		DbPort:         common.FromEnvVar(constants.EnvDbPort, constants.DbPort),
-		DbUser:         common.FromEnvVar(constants.EnvDbUser, constants.DbUser),
-		DbPass:         common.FromEnvVar(constants.EnvDbPass, constants.DbPassword),
-		DbName:         common.FromEnvVar(constants.EnvDbName, constants.DbName),
+		GrpcServerPort: utils.FromEnvVar(constants.GrpcServerPort, constants.DefaultPort),
+		DbHost:         utils.FromEnvVar(constants.EnvDbHost, constants.DbHost),
+		DbPort:         utils.FromEnvVar(constants.EnvDbPort, constants.DbPort),
+		DbUser:         utils.FromEnvVar(constants.EnvDbUser, constants.DbUser),
+		DbPass:         utils.FromEnvVar(constants.EnvDbPass, constants.DbPassword),
+		DbName:         utils.FromEnvVar(constants.EnvDbName, constants.DbName),
 	}
 }
