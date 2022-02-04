@@ -12,11 +12,6 @@ type Impl struct {
 
 // Upsert This method removes the aliases and regions of a port to ensure that inserts will succeed after its upsertion.
 func (i *Impl) Upsert(port common.Port) {
-	unlocs := port.Unlocs[0]
-
-	i.Repository.RemoveAliases(unlocs)
-	i.Repository.RemoveRegions(unlocs)
-
 	var coord1 interface{}
 	var coord2 interface{}
 	if len(port.Coordinates) != 0 {
@@ -27,17 +22,7 @@ func (i *Impl) Upsert(port common.Port) {
 		coord2 = nil
 	}
 
-	portId := i.Repository.GetNewPortId()
-	i.Repository.UpsertPort(portId, unlocs, port.Name, port.City, port.Country, coord1, coord2, port.Province, port.Timezone, port.Code)
-	portId = i.Repository.FindPortId(unlocs)
-
-	for _, alias := range port.Alias {
-		i.Repository.InsertAlias(portId, unlocs, alias)
-	}
-
-	for _, region := range port.Regions {
-		i.Repository.InsertRegion(portId, unlocs, region)
-	}
+	i.Repository.UpsertPort(port.Unlocs[0], port.Name, port.City, port.Country, port.Alias, port.Regions, coord1, coord2, port.Province, port.Timezone, port.Code)
 }
 
 func (i *Impl) Select(page int) []common.Port {

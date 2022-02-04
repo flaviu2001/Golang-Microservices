@@ -5,38 +5,32 @@ import (
 	"database/sql"
 )
 
-func (p *RepositoryImpl) GetNewPortId() int64 {
-	p.initConnection()
-	defer p.closeConnection()
+func (p *RepositoryImpl) UpsertPort(unlocs string, name string, city string, country string, aliases []string, regions []string, coord1 interface{}, coord2 interface{}, province string, timezone string, code string) {
+	conn := p.initConnection()
+	defer p.closeConnection(conn)
 
-	rows, err := p.conn.Query(selectHighestId)
+	connTx := p.BeginTransaction(conn)
+	defer p.EndTransaction(connTx)
+
+	p.removeAliases(connTx, unlocs)
+	p.removeRegions(connTx, unlocs)
+
+	_, err := connTx.Exec(upsertPortStatement, unlocs, name, city, country, coord1, coord2, province, timezone, code)
 	common.CheckError(err)
-	var portId int64
 
-	for rows.Next() {
-		err = rows.Scan(&portId)
-		common.CheckError(err)
+	portId := p.findPortId(connTx, unlocs)
+
+	for _, alias := range aliases {
+		p.insertAlias(connTx, portId, unlocs, alias)
 	}
 
-	err = rows.Close()
-	common.CheckError(err)
-
-	return portId + 1
+	for _, region := range regions {
+		p.insertRegion(connTx, portId, unlocs, region)
+	}
 }
 
-func (p *RepositoryImpl) UpsertPort(portId int64, unlocs string, name string, city string, country string, coord1 interface{}, coord2 interface{}, province string, timezone string, code string) {
-	p.initConnection()
-	defer p.closeConnection()
-
-	_, err := p.conn.Exec(upsertPortStatement, portId, unlocs, name, city, country, coord1, coord2, province, timezone, code)
-	common.CheckError(err)
-}
-
-func (p *RepositoryImpl) FindPortId(unlocs string) int64 {
-	p.initConnection()
-	defer p.closeConnection()
-
-	rows, err := p.conn.Query(selectPortId, unlocs)
+func (p *RepositoryImpl) findPortId(connTx *sql.Tx, unlocs string) int64 {
+	rows, err := connTx.Query(selectPortId, unlocs)
 	common.CheckError(err)
 
 	defer func(rows *sql.Rows) {
@@ -55,10 +49,10 @@ func (p *RepositoryImpl) FindPortId(unlocs string) int64 {
 }
 
 func (p *RepositoryImpl) SelectPorts(lowerBound int, upperBound int) []common.Port {
-	p.initConnection()
-	defer p.closeConnection()
+	conn := p.initConnection()
+	defer p.closeConnection(conn)
 
-	rows, err := p.conn.Query(paginatedSelectPort, lowerBound, upperBound)
+	rows, err := conn.Query(paginatedSelectPort, lowerBound, upperBound)
 	common.CheckError(err)
 
 	ports := make([]common.Port, 0)
@@ -94,8 +88,8 @@ func (p *RepositoryImpl) SelectPorts(lowerBound int, upperBound int) []common.Po
 			Name:        name,
 			City:        city,
 			Country:     country,
-			Alias:       p.GetAliases(unlocs),
-			Regions:     p.GetRegions(unlocs),
+			Alias:       p.getAliases(conn, unlocs),
+			Regions:     p.getRegions(conn, unlocs),
 			Coordinates: coordinates,
 			Province:    province,
 			Timezone:    timezone,

@@ -5,11 +5,8 @@ import (
 	"database/sql"
 )
 
-func (p *RepositoryImpl) GetRegions(unlocs string) []string {
-	p.initConnection()
-	defer p.closeConnection()
-
-	rows, err := p.conn.Query(selectRegions, unlocs)
+func (p *RepositoryImpl) getRegions(conn *sql.DB, unlocs string) []string {
+	rows, err := conn.Query(selectRegions, unlocs)
 	common.CheckError(err)
 
 	defer func(rows *sql.Rows) {
@@ -29,18 +26,12 @@ func (p *RepositoryImpl) GetRegions(unlocs string) []string {
 	return regions
 }
 
-func (p *RepositoryImpl) InsertRegion(portId int64, unlocs string, region string) {
-	p.initConnection()
-	defer p.closeConnection()
-
-	_, err := p.conn.Exec(insertRegion, portId, unlocs, region)
+func (p *RepositoryImpl) insertRegion(connTx *sql.Tx, portId int64, unlocs string, region string) {
+	_, err := connTx.Exec(insertRegion, portId, unlocs, region)
 	common.CheckError(err)
 }
 
-func (p *RepositoryImpl) RemoveRegions(unlocs string) {
-	p.initConnection()
-	defer p.closeConnection()
-
-	_, err := p.conn.Exec(removeRegions, unlocs)
+func (p *RepositoryImpl) removeRegions(connTx *sql.Tx, unlocs string) {
+	_, err := connTx.Exec(removeRegions, unlocs)
 	common.CheckError(err)
 }

@@ -12,7 +12,7 @@ const (
 		"unlocs VARCHAR," +
 		"region VARCHAR)"
 	createPortTable = "CREATE TABLE IF NOT EXISTS ports (" +
-		"id BIGINT PRIMARY KEY," +
+		"id SERIAL PRIMARY KEY," +
 		"unlocs VARCHAR UNIQUE," +
 		"name VARCHAR," +
 		"city VARCHAR," +
@@ -26,13 +26,12 @@ const (
 	removeAliases = "DELETE FROM aliases WHERE unlocs = $1"
 	removeRegions = "DELETE FROM regions WHERE unlocs = $1"
 
-	selectHighestId = "SELECT GREATEST(0, max(id)) from (select id from ports order by id desc limit 1) t"
-	selectPortId    = "SELECT id FROM ports WHERE unlocs = $1"
+	selectPortId = "SELECT id FROM ports WHERE unlocs = $1"
 
-	upsertPortStatement = "INSERT INTO ports " +
-		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) " +
+	upsertPortStatement = "INSERT INTO ports (unlocs, name, city, country, coord1, coord2, province, timezone, code) " +
+		"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) " +
 		"ON CONFLICT (unlocs) DO UPDATE " +
-		"SET name = $3, city = $4, country = $5, coord1 = $6, coord2 = $7, province = $8, timezone = $9, code = $10"
+		"SET name = $2, city = $3, country = $4, coord1 = $5, coord2 = $6, province = $7, timezone = $8, code = $9"
 	insertAlias         = "INSERT INTO aliases(port_id, unlocs, alias) values ($1, $2, $3)"
 	insertRegion        = "INSERT INTO regions(port_id, unlocs, region) values ($1, $2, $3)"
 	paginatedSelectPort = "SELECT * FROM ports WHERE id BETWEEN $1 AND $2"

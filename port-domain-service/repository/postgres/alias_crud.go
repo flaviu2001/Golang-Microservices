@@ -5,11 +5,8 @@ import (
 	"database/sql"
 )
 
-func (p *RepositoryImpl) GetAliases(unlocs string) []string {
-	p.initConnection()
-	defer p.closeConnection()
-
-	rows, err := p.conn.Query(selectAliases, unlocs)
+func (p *RepositoryImpl) getAliases(conn *sql.DB, unlocs string) []string {
+	rows, err := conn.Query(selectAliases, unlocs)
 	common.CheckError(err)
 
 	defer func(rows *sql.Rows) {
@@ -29,18 +26,12 @@ func (p *RepositoryImpl) GetAliases(unlocs string) []string {
 	return aliases
 }
 
-func (p *RepositoryImpl) InsertAlias(portId int64, unlocs string, alias string) {
-	p.initConnection()
-	defer p.closeConnection()
-
-	_, err := p.conn.Exec(insertAlias, portId, unlocs, alias)
+func (p *RepositoryImpl) insertAlias(connTx *sql.Tx, portId int64, unlocs string, alias string) {
+	_, err := connTx.Exec(insertAlias, portId, unlocs, alias)
 	common.CheckError(err)
 }
 
-func (p *RepositoryImpl) RemoveAliases(unlocs string) {
-	p.initConnection()
-	defer p.closeConnection()
-
-	_, err := p.conn.Exec(removeAliases, unlocs)
+func (p *RepositoryImpl) removeAliases(connTx *sql.Tx, unlocs string) {
+	_, err := connTx.Exec(removeAliases, unlocs)
 	common.CheckError(err)
 }
