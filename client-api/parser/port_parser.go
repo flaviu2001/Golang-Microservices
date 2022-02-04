@@ -13,6 +13,7 @@ import (
 // It parses (with a buffered reader) the json specified in the filename parameter and feeds the entry channel
 // with each entry found. Upon encountering one error the whole method halts and no further entries are fed.
 // The method is non-blocking, and the channels receive their data in a background thread that produces said data.
+// The end of parsing is marked by a nil value in the error channel.
 func GetPorts(filename string) (entriesChannel chan utils.Entry, errorChannel chan error) {
 	entriesChannel = make(chan utils.Entry, constants.ChannelSize)
 	errorChannel = make(chan error, constants.ChannelSize)

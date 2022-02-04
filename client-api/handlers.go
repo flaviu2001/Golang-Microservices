@@ -37,14 +37,13 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 			// entriesOpen and errorOpen mark whether the channels are still open or closed.
 			entriesOpen := true
 			errorOpen := true
-			running := true
 
 			// Entry read from the channel
 			var entry utils.Entry
 
 			// Call to the server to upsert the entries
 			stream, err := c.Upsert(context.Background())
-			for running {
+			for {
 				select {
 				// There is an entry in the channel
 				case entry, entriesOpen = <-entriesChannel:
@@ -64,11 +63,11 @@ func handleParser(w http.ResponseWriter, _ *http.Request) {
 						// Similar to entriesChannel
 						errorChannel = nil
 					}
-				default:
-					// If both channels are found to be closed the loop will finish and the method will be allowed to exit.
-					if entriesChannel == nil && errorChannel == nil {
-						running = false
-					}
+				}
+
+				// If both channels are found to be closed the loop will finish and the method will be allowed to exit.
+				if entriesChannel == nil && errorChannel == nil {
+					break
 				}
 			}
 
