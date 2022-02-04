@@ -1,5 +1,7 @@
 package utils
 
+import "sync"
+
 type JsonStatusResponse struct {
 	Status string `json:"status"`
 }
@@ -25,4 +27,9 @@ type Port struct {
 type Entry struct {
 	PortName string
 	Port     Port
+}
+
+type ParserState struct {
+	CurrentlyParsing bool
+	Mutex            sync.Mutex
 }

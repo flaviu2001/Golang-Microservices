@@ -1,8 +1,12 @@
 package main
 
-import "github.com/gorilla/mux"
+import (
+	"Bleenco/client-api/utils"
+	"github.com/gorilla/mux"
+)
 
 func registerRoutes(router *mux.Router) {
-	router.HandleFunc("/parse", handleParser).Methods("GET")
+	state := new(utils.ParserState)
+	router.HandleFunc("/parse", handleParser(state)).Methods("GET")
 	router.HandleFunc("/select/{page}", handleSelect).Methods("GET")
 }
