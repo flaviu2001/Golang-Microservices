@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"Bleenco/port-domain-service/utils"
+	"Bleenco/common"
 	"database/sql"
 )
 
@@ -10,16 +10,16 @@ func (p *RepositoryImpl) GetNewPortId() int64 {
 	defer p.closeConnection()
 
 	rows, err := p.conn.Query(selectHighestId)
-	utils.CheckError(err)
+	common.CheckError(err)
 	var portId int64
 
 	for rows.Next() {
 		err = rows.Scan(&portId)
-		utils.CheckError(err)
+		common.CheckError(err)
 	}
 
 	err = rows.Close()
-	utils.CheckError(err)
+	common.CheckError(err)
 
 	return portId + 1
 }
@@ -29,7 +29,7 @@ func (p *RepositoryImpl) UpsertPort(portId int64, unlocs string, name string, ci
 	defer p.closeConnection()
 
 	_, err := p.conn.Exec(upsertPortStatement, portId, unlocs, name, city, country, coord1, coord2, province, timezone, code)
-	utils.CheckError(err)
+	common.CheckError(err)
 }
 
 func (p *RepositoryImpl) FindPortId(unlocs string) int64 {
@@ -37,31 +37,31 @@ func (p *RepositoryImpl) FindPortId(unlocs string) int64 {
 	defer p.closeConnection()
 
 	rows, err := p.conn.Query(selectPortId, unlocs)
-	utils.CheckError(err)
+	common.CheckError(err)
 
 	defer func(rows *sql.Rows) {
 		err := rows.Close()
-		utils.CheckError(err)
+		common.CheckError(err)
 	}(rows)
 
 	var portId int64
 
 	for rows.Next() {
 		err = rows.Scan(&portId)
-		utils.CheckError(err)
+		common.CheckError(err)
 	}
 
 	return portId
 }
 
-func (p *RepositoryImpl) SelectPorts(lowerBound int, upperBound int) []utils.Port {
+func (p *RepositoryImpl) SelectPorts(lowerBound int, upperBound int) []common.Port {
 	p.initConnection()
 	defer p.closeConnection()
 
 	rows, err := p.conn.Query(paginatedSelectPort, lowerBound, upperBound)
-	utils.CheckError(err)
+	common.CheckError(err)
 
-	ports := make([]utils.Port, 0)
+	ports := make([]common.Port, 0)
 
 	for rows.Next() {
 		var id int64
@@ -76,7 +76,7 @@ func (p *RepositoryImpl) SelectPorts(lowerBound int, upperBound int) []utils.Por
 		var code *string
 
 		err := rows.Scan(&id, &unlocs, &name, &city, &country, &coord1, &coord2, &province, &timezone, &code)
-		utils.CheckError(err)
+		common.CheckError(err)
 
 		var coordinates []float32
 		if coord1 == nil {
@@ -90,7 +90,7 @@ func (p *RepositoryImpl) SelectPorts(lowerBound int, upperBound int) []utils.Por
 			dereferencedCode = *code
 		}
 
-		ports = append(ports, utils.Port{
+		ports = append(ports, common.Port{
 			Name:        name,
 			City:        city,
 			Country:     country,

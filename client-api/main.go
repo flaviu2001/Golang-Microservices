@@ -2,7 +2,7 @@ package main
 
 import (
 	"Bleenco/client-api/config"
-	"Bleenco/client-api/utils"
+	"Bleenco/common"
 	pb "Bleenco/rpc"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -27,7 +27,7 @@ func main() {
 
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
-		utils.CheckError(err)
+		common.CheckError(err)
 	}(conn)
 
 	c = pb.NewCommunicatorClient(conn)

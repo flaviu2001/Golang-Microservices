@@ -1,8 +1,8 @@
 package postgres
 
 import (
+	"Bleenco/common"
 	"Bleenco/port-domain-service/config"
-	"Bleenco/port-domain-service/utils"
 	"database/sql"
 	"fmt"
 )
@@ -21,13 +21,13 @@ func (p *RepositoryImpl) initDatabase() {
 	}
 
 	_, err := p.conn.Exec(createPortTable)
-	utils.CheckError(err)
+	common.CheckError(err)
 
 	_, err = p.conn.Exec(createAliasTable)
-	utils.CheckError(err)
+	common.CheckError(err)
 
 	_, err = p.conn.Exec(createRegionTable)
-	utils.CheckError(err)
+	common.CheckError(err)
 
 	p.databaseInitialized = true
 }
@@ -41,7 +41,7 @@ func (p *RepositoryImpl) initConnection() {
 	db, err := sql.Open("postgres", dbinfo)
 
 	if err != nil {
-		utils.CheckError(err)
+		common.CheckError(err)
 	}
 
 	p.conn = db
@@ -51,5 +51,5 @@ func (p *RepositoryImpl) initConnection() {
 // closeConnection This method will be called when there is no more use for the connection.
 func (p *RepositoryImpl) closeConnection() {
 	err := p.conn.Close()
-	utils.CheckError(err)
+	common.CheckError(err)
 }

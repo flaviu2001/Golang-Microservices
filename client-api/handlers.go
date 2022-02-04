@@ -4,6 +4,7 @@ import (
 	"Bleenco/client-api/constants"
 	"Bleenco/client-api/parser"
 	"Bleenco/client-api/utils"
+	"Bleenco/common"
 	pb "Bleenco/rpc"
 	"context"
 	"encoding/json"
@@ -46,8 +47,8 @@ func handleParser(state *utils.ParserState) http.HandlerFunc {
 					case entry, entriesOpen = <-entriesChannel:
 						if entriesOpen {
 							// Send the entry through the stream to the port domain service
-							if err := stream.Send(utils.JsonPortToRpcPort(entry.Port)); err != nil {
-								utils.CheckError(err)
+							if err := stream.Send(common.JsonPortToRpcPort(entry.Port)); err != nil {
+								common.CheckError(err)
 							}
 						} else {
 							// Mark the entriesChannel as nil so that no further reads will succeed or even be attempted
@@ -72,7 +73,7 @@ func handleParser(state *utils.ParserState) http.HandlerFunc {
 				_, err = stream.CloseAndRecv()
 
 				if err != nil {
-					utils.CheckError(err)
+					common.CheckError(err)
 				}
 
 				state.Mutex.Lock()
@@ -83,14 +84,14 @@ func handleParser(state *utils.ParserState) http.HandlerFunc {
 			// Return a simple response to the user
 			var response = utils.JsonStatusResponse{Status: "started"}
 			err := json.NewEncoder(w).Encode(response)
-			utils.CheckError(err)
+			common.CheckError(err)
 		} else {
 			state.Mutex.Unlock()
 
 			// Return a simple response to the user
 			var response = utils.JsonStatusResponse{Status: "running"}
 			err := json.NewEncoder(w).Encode(response)
-			utils.CheckError(err)
+			common.CheckError(err)
 		}
 	}
 }
@@ -101,11 +102,11 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	page := mux.Vars(r)["page"]
 	intPage, err := strconv.Atoi(page)
-	utils.CheckError(err)
+	common.CheckError(err)
 
 	// call to the port domain server to receive the required ports
 	stream, err := c.Select(context.Background(), &pb.RpcPage{Page: int32(intPage)})
-	var ports = make([]utils.Port, 0)
+	var ports = make([]common.Port, 0)
 
 	for {
 		port, err := stream.Recv()
@@ -113,12 +114,12 @@ func handleSelect(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		utils.CheckError(err)
+		common.CheckError(err)
 
 		// Build a list from all the ports and return it
-		ports = append(ports, utils.RpcPortToJsonPort(port))
+		ports = append(ports, common.RpcPortToJsonPort(port))
 	}
 
 	err = json.NewEncoder(w).Encode(utils.JsonPortsResponse{Status: "success", Ports: ports})
-	utils.CheckError(err)
+	common.CheckError(err)
 }

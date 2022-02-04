@@ -1,6 +1,8 @@
 package repository
 
-import "Bleenco/port-domain-service/utils"
+import (
+	"Bleenco/common"
+)
 
 // Repository This repository contains the simple instructions that are put together in a service to form complex operations
 type Repository interface {
@@ -33,5 +35,5 @@ type Repository interface {
 
 	// SelectPorts This method returns all the ports with the id between a lower and an upper bound. This is
 	// to be used in a pagination mechanism
-	SelectPorts(lowerBound int, upperBound int) []utils.Port
+	SelectPorts(lowerBound int, upperBound int) []common.Port
 }
