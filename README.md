@@ -1,4 +1,7 @@
-# Golang microservices assignment
+# Golang microservices
+
+### What's this?
+As part of an assignment given to me I had to learn golang and solve a task with microservices to familiarise myself with the language and framework.
 
 ### Features
 - Client and Service communication with grpc
@@ -17,19 +20,3 @@ The server allows upsertion of ports and paginated retrievals through remote pro
 
 ### Installing and running
 Refer to `INSTALL.md` for the steps. 
-
-### Time spent
-- learning golang basics: 3 hours
-- port-parser branch: 2 hours
-  - the part of the code that reads the json file
-- microservices branch: 3 hours
-  - here I structured the code to communicate through REST apis between client and server
-- select-ports branch: 2 hours
-  - here I implemented the paginated retrieval of data
-- grpc-refactor branch: 3 hours
-  - here I refactored the code to change from REST to grpc as the communication channel between client and server
-- dockerize branch: 4 hours
-  - here I dockerized the application and wrote the docker-compose.yaml as well
-  - I also refactored the code to structure the code into a repository and service pattern
-- tests and documentation: 3 hours
-  - here I wrote a couple of tests and provided documentation inside the code and also wrote this README.md file
